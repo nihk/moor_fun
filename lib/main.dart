@@ -9,8 +9,12 @@ int id = 1;
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Provider(
-      create: (_) => AppDatabase(),
+    return MultiProvider(
+      providers: [
+        Provider<AppDatabase>(
+          create: (_) => AppDatabase(),
+        ),
+      ],
       child: MaterialApp(
         title: 'Moor Demo',
         theme: ThemeData(

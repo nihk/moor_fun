@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:moor_fun/app_database.dart';
 import 'package:moor_fun/posts_dao.dart';
-import 'package:moor_fun/repository.dart';
+import 'package:moor_fun/posts_repository.dart';
 import 'package:moor_fun/resource.dart';
 import 'package:moor_fun/rest_api.dart';
 import 'package:provider/provider.dart';
@@ -19,10 +19,10 @@ class MyApp extends StatelessWidget {
           create: (_) => AppDatabase(),
           dispose: (_, appDatabase) => appDatabase.close(),
         ),
-        // fixme: Repository has state; it shouldn't be an app-wide singleton
-        ProxyProvider<AppDatabase, Repository>(
+        // fixme: Repository has state; it probably shouldn't be an app-wide singleton
+        ProxyProvider<AppDatabase, PostsRepository>(
           update: (_, AppDatabase appDatabase, __) =>
-              Repository(appDatabase.postsDao, RestApi())..refresh(),
+              PostsRepository(appDatabase.postsDao, RestApi())..refresh(),
           dispose: (_, repository) => repository.dispose(),
         )
       ],
@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
 class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var repository = Provider.of<Repository>(context);
+    var repository = Provider.of<PostsRepository>(context);
 
     return Scaffold(
       body: StreamProvider<Resource<List<Post>>>(

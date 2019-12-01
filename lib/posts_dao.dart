@@ -13,16 +13,12 @@ class PostsDao extends DatabaseAccessor<AppDatabase> with _$PostsDaoMixin {
     return select(posts).watch();
   }
 
-  Future<List<Post>> getPosts() {
-    return select(posts).get();
-  }
-
   Future<int> insert(Post post) {
-    return into(posts).insert(post);
+    return into(posts).insert(post, mode: InsertMode.replace);
   }
 
   Future<void> insertAll(List<Post> postz) {
-    return batch((f) => f.insertAll(posts, postz));
+    return batch((f) => f.insertAll(posts, postz, mode: InsertMode.replace));
   }
 
   Future<int> deleteAll() {

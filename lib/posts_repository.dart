@@ -8,7 +8,7 @@ import 'package:moor_fun/resource.dart';
 import 'package:moor_fun/rest_api.dart';
 import 'package:rxdart/rxdart.dart';
 
-class Repository {
+class PostsRepository {
   final PostsDao _postsDao;
   final RestApi _restApi;
 
@@ -19,7 +19,7 @@ class Repository {
   StreamSubscription<Resource<List<Post>>> _subscription;
   _PostsNetworkBoundResource _nbr;
 
-  Repository(this._postsDao, this._restApi);
+  PostsRepository(this._postsDao, this._restApi);
 
   void refresh() {
     debugPrint("refresh called");
@@ -61,7 +61,7 @@ class _PostsNetworkBoundResource extends NetworkBoundResource<List<Post>> {
   }
 
   @override
-  Observable<void> saveFetch(List<Post> data) {
+  Observable<void> saveFetchResult(List<Post> data) {
     return Observable.fromFuture(_postsDao.deleteAll())
         .flatMap((_) => Observable.fromFuture(_postsDao.insertAll(data)));
   }

@@ -32,7 +32,7 @@ abstract class NetworkBoundResource<T> {
               .flatMap((_) {
             _compositeSubscription.remove(loadingSubscription);
             debugPrint("-> calling saveFetch");
-            return saveFetch(data);
+            return saveFetchResult(data);
           });
         })
         .flatMap((_) => query().map((data) {
@@ -58,7 +58,7 @@ abstract class NetworkBoundResource<T> {
 
   Observable<T> fetch();
 
-  Observable<void> saveFetch(T data);
+  Observable<void> saveFetchResult(T data);
 
   void dispose() {
     _compositeSubscription.dispose();

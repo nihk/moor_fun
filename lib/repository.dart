@@ -11,29 +11,29 @@ class Repository {
   final RestApi _restApi;
 
   final _posts = StreamController<Resource<List<Post>>>();
-
   StreamSink<Resource<List<Post>>> get _sink => _posts.sink;
-
   Stream<Resource<List<Post>>> get posts => _posts.stream;
-  StreamSubscription<Resource<List<Post>>> _subscription;
-  StreamSubscription<Resource<List<Post>>> _innerSubscription;
+
+  CompositeSubscription _compositeSubscription = CompositeSubscription();
 
   Repository(this._postsDao, this._restApi);
 
   Stream<Resource<List<Post>>> _watchPosts() async* {
     yield Resource.loading(null);
 
-    _innerSubscription = _postsDao
+    var localSubscription = _postsDao
         .watchPosts()
         .map((posts) => Resource.loading(posts))
         .listen((resource) {
       print("emitting Resource.loading");
       _sink.add(resource);
     });
+    _compositeSubscription.add(localSubscription);
 
     yield* Observable.fromFuture(_restApi.fetch()).flatMap((posts) {
       print("-> restApi.fetch() done");
-      return Observable.fromFuture(_innerSubscription.cancel()).flatMap((_) {
+      return Observable.fromFuture(localSubscription.cancel()).flatMap((_) {
+        _compositeSubscription.remove(localSubscription);
         print("-> _postsDao.deleteAll");
         return _postsDao.deleteAll().asStream();
       }).flatMap((_) {
@@ -51,11 +51,11 @@ class Repository {
         }));
   }
 
-  Future<void> refresh() async {
-    await _subscription?.cancel();
-    await _innerSubscription?.cancel();
+  void refresh() {
+    _compositeSubscription.clear();
     print("refresh.cancelling");
-    _subscription = _watchPosts().listen((resource) => _sink.add(resource));
+    var subscription = _watchPosts().listen((resource) => _sink.add(resource));
+    _compositeSubscription.add(subscription);
   }
 
   Future<int> deleteAll() {
@@ -68,6 +68,6 @@ class Repository {
 
   void dispose() {
     _posts.close();
-    _subscription?.cancel();
+    _compositeSubscription.dispose();
   }
 }

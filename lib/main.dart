@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:moor_fun/app_database.dart';
+import 'package:moor_fun/posts_dao.dart';
 import 'package:provider/provider.dart';
 
 void main() => runApp(MyApp());
@@ -14,6 +15,9 @@ class MyApp extends StatelessWidget {
         Provider<AppDatabase>(
           create: (_) => AppDatabase(),
         ),
+        ProxyProvider<AppDatabase, PostsDao>(
+          update: (_, AppDatabase appDatabase, __) => appDatabase.postsDao,
+        )
       ],
       child: MaterialApp(
         title: 'Moor Demo',
@@ -29,12 +33,12 @@ class MyApp extends StatelessWidget {
 class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var appDatabase = Provider.of<AppDatabase>(context);
+    var postsDao = Provider.of<PostsDao>(context);
 
     return Scaffold(
       body: StreamProvider<List<Post>>(
         create: (BuildContext context) {
-          return appDatabase.watchPosts();
+          return postsDao.watchPosts();
         },
         child: Consumer<List<Post>>(
           builder: (BuildContext context, List<Post> posts, Widget child) {
@@ -56,7 +60,7 @@ class HomePage extends StatelessWidget {
           FloatingActionButton(
             child: Icon(Icons.close),
             onPressed: () {
-              appDatabase.deleteAll();
+              postsDao.deleteAll();
               id = 1;
             },
           ),
@@ -66,7 +70,7 @@ class HomePage extends StatelessWidget {
           FloatingActionButton(
             child: Icon(Icons.add),
             onPressed: () {
-              appDatabase.insert(
+              postsDao.insert(
                 Post(
                   userId: id * id,
                   id: id,

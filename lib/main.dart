@@ -7,6 +7,7 @@ void main() => runApp(MyApp());
 
 int id = 1;
 
+// todo: resource class, change notifier provider that exposes an async* stream with yields
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -14,6 +15,7 @@ class MyApp extends StatelessWidget {
       providers: [
         Provider<AppDatabase>(
           create: (_) => AppDatabase(),
+          dispose: (_, appDatabase) => appDatabase.close(),
         ),
         ProxyProvider<AppDatabase, PostsDao>(
           update: (_, AppDatabase appDatabase, __) => appDatabase.postsDao,

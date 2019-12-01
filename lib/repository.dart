@@ -16,34 +16,44 @@ class Repository {
 
   Repository(this._postsDao, this._restApi);
 
-  Future<void> _watchPosts() async {
-    _subscription = _postsDao
+  Stream<Resource<List<Post>>> _watchPosts() async* {
+    yield Resource.loading(null);
+
+    var localSubscription = _postsDao
         .watchPosts()
         .map((posts) => Resource.loading(posts))
-        .listen((posts) => _sink.add(posts));
+        .listen((resource) {
+          print("emitting Resource.loading");
+          _sink.add(resource);
+        });
 
     try {
+      // fixme: these need to be cancellable...somehow
       List<Post> remotePosts = await _restApi.fetch();
-      _subscription.cancel();
+      print("-> fetched restApi");
+      await localSubscription.cancel();
       await _postsDao.deleteAll();
-      _postsDao.insertAll(remotePosts);
+      print("-> deleted all local posts");
+      await _postsDao.insertAll(remotePosts);
+      print("-> inserted remote posts locally");
 
-      _subscription = _postsDao
-          .watchPosts()
-          .map((posts) => Resource.success(posts))
-          .listen((posts) => _sink.add(posts));
+      yield* _postsDao.watchPosts().map((posts) {
+        print("--> emitting Resource.success");
+        return Resource.success(posts);
+      });
     } catch (e) {
-      _subscription.cancel();
-      _subscription = _postsDao
-          .watchPosts()
-          .map((posts) => Resource.error(posts, e))
-          .listen((posts) => _sink.add(posts));
+      await localSubscription.cancel();
+      yield* _postsDao.watchPosts().map((posts) {
+        print("--> emitting Resource.error");
+        return Resource.error(posts, e);
+      });
     }
   }
-  
-  Future<void> refresh() {
-    _subscription?.cancel();
-    return _watchPosts();
+
+  Future<void> refresh() async {
+    await _subscription?.cancel();
+    print("refresh.cancelling");
+    _subscription = _watchPosts().listen((resource) => _sink.add(resource));
   }
 
   Future<int> deleteAll() {

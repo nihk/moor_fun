@@ -19,9 +19,11 @@ class MyApp extends StatelessWidget {
           create: (_) => AppDatabase(),
           dispose: (_, appDatabase) => appDatabase.close(),
         ),
+        // fixme: Repository has state; it shouldn't be an app-wide singleton
         ProxyProvider<AppDatabase, Repository>(
           update: (_, AppDatabase appDatabase, __) =>
-              Repository(appDatabase.postsDao, RestApi()),
+              Repository(appDatabase.postsDao, RestApi())..refresh(),
+          dispose: (_, repository) => repository.dispose(),
         )
       ],
       child: MaterialApp(
@@ -44,7 +46,7 @@ class HomePage extends StatelessWidget {
       body: StreamProvider<Resource<List<Post>>>(
         initialData: Resource.loading(null),
         create: (BuildContext context) {
-          return repository.watchPosts();
+          return repository.posts;
         },
         child: Consumer<Resource<List<Post>>>(
           builder: (BuildContext context, Resource<List<Post>> resource,
@@ -100,6 +102,15 @@ class HomePage extends StatelessWidget {
                 ),
               );
               id++;
+            },
+          ),
+          SizedBox(
+            width: 10,
+          ),
+          FloatingActionButton(
+            child: Icon(Icons.network_wifi),
+            onPressed: () {
+              repository.refresh();
             },
           ),
         ],

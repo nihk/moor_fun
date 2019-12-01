@@ -9,28 +9,41 @@ class Repository {
   final PostsDao _postsDao;
   final RestApi _restApi;
 
-//  final _posts = StreamController<Resource<List<Post>>>();
-//  Stream<Resource<List<Post>>> get posts => _posts.stream;
+  final _posts = StreamController<Resource<List<Post>>>();
+  StreamSink<Resource<List<Post>>> get _sink => _posts.sink;
+  Stream<Resource<List<Post>>> get posts => _posts.stream;
+  StreamSubscription<Resource<List<Post>>> _subscription;
 
   Repository(this._postsDao, this._restApi);
 
-  Stream<Resource<List<Post>>> watchPosts() async* {
-    yield Resource.loading(null);
-    List<Post> cachedPosts = await _postsDao.getPosts();
-    yield Resource.loading(cachedPosts);
+  Future<void> _watchPosts() async {
+    _subscription = _postsDao
+        .watchPosts()
+        .map((posts) => Resource.loading(posts))
+        .listen((posts) => _sink.add(posts));
 
     try {
       List<Post> remotePosts = await _restApi.fetch();
+      _subscription.cancel();
       await _postsDao.deleteAll();
       _postsDao.insertAll(remotePosts);
 
-      yield* _postsDao.watchPosts().map((posts) => Resource.success(posts));
+      _subscription = _postsDao
+          .watchPosts()
+          .map((posts) => Resource.success(posts))
+          .listen((posts) => _sink.add(posts));
     } catch (e) {
-      yield* _postsDao.watchPosts().map((posts) => Resource.error(posts, e));
+      _subscription.cancel();
+      _subscription = _postsDao
+          .watchPosts()
+          .map((posts) => Resource.error(posts, e))
+          .listen((posts) => _sink.add(posts));
     }
   }
   
-  void refresh() {
+  Future<void> refresh() {
+    _subscription?.cancel();
+    return _watchPosts();
   }
 
   Future<int> deleteAll() {
@@ -41,7 +54,8 @@ class Repository {
     return _postsDao.insert(post);
   }
 
-//  void dispose() {
-//    _posts.close();
-//  }
+  void dispose() {
+    _posts.close();
+    _subscription?.cancel();
+  }
 }
